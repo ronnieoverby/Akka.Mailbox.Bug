@@ -10,21 +10,9 @@ using static Akka.Mailbox.Bug.PubSub.Messages;
 
 namespace Akka.Mailbox.Bug
 {
-    class Assertions
-    {
-        public bool MailboxCreated { get; set; }
-        public bool PriorityGenerated { get; set; }
-        public bool MessagesReceived { get; set; }
-
-        public override string ToString() =>
-            new { MailboxCreated, PriorityGenerated, MessagesReceived }.ToString();
-
-        public static readonly Assertions Instance = new Assertions();
-    }
 
     class Program
     {
-
         static void Main(string[] args)
         {
             using (var actSys = ActorSystem.Create("ChuckNorris"))
@@ -40,7 +28,7 @@ namespace Akka.Mailbox.Bug
 
             Assert.True(Assertions.Instance.MessagesReceived);
             Assert.True(Assertions.Instance.MailboxCreated);
-            Assert.True(Assertions.Instance.PriorityGenerated);
+            Assert.True(Assertions.Instance.PriorityGenerated); // <--- KABOOM
 
             Console.ReadLine();
         }
@@ -179,5 +167,18 @@ namespace Akka.Mailbox.Bug
 
             return 1;
         }
+    }
+
+
+    class Assertions
+    {
+        public bool MailboxCreated { get; set; }
+        public bool PriorityGenerated { get; set; }
+        public bool MessagesReceived { get; set; }
+
+        public override string ToString() =>
+            new { MailboxCreated, PriorityGenerated, MessagesReceived }.ToString();
+
+        public static readonly Assertions Instance = new Assertions();
     }
 }
