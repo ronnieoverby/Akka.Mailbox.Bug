@@ -15,20 +15,29 @@ namespace Akka.Mailbox.Bug
     {
         static void Main(string[] args)
         {
-            using (var actSys = ActorSystem.Create("ChuckNorris"))
+            while (true)
             {
-                var pubsub = actSys.ActorOf(Props.Create(() => new PubSub()).WithMailbox("pubsub-mailbox"));
-                var sub = actSys.ActorOf(Props.Create(() => new Sub(pubsub)));
-                var pub = actSys.ActorOf(Props.Create(() => new Pub(pubsub)));
+                // looping here because I noticed that sometime the priority generator does get called!
 
-                pub.Tell("hey bo");
+                Assertions.Instance.Reset();
 
-                actSys.Terminate().Wait();
+                using (var actSys = ActorSystem.Create("ChuckNorris"))
+                {
+                    var pubsub = actSys.ActorOf(Props.Create(() => new PubSub()).WithMailbox("pubsub-mailbox"));
+                    var sub = actSys.ActorOf(Props.Create(() => new Sub(pubsub)));
+                    var pub = actSys.ActorOf(Props.Create(() => new Pub(pubsub)));
+
+                    pub.Tell("hey bo");
+
+                    actSys.Terminate().Wait();
+                }
+
+                Assert.True(Assertions.Instance.MessagesReceived);
+                Assert.True(Assertions.Instance.MailboxCreated);
+                Assert.True(Assertions.Instance.PriorityGenerated); // <--- SOMETIMES IT FAILS!
+
+                Console.WriteLine("Worked this time!");
             }
-
-            Assert.True(Assertions.Instance.MessagesReceived);
-            Assert.True(Assertions.Instance.MailboxCreated);
-            Assert.True(Assertions.Instance.PriorityGenerated); // <--- KABOOM
 
             Console.ReadLine();
         }
@@ -150,7 +159,7 @@ namespace Akka.Mailbox.Bug
 
         }
     }
-    
+
     public class PubSubMailbox : UnboundedPriorityMailbox
     {
         public PubSubMailbox(Settings settings, Config config) : base(settings, config)
@@ -179,6 +188,11 @@ namespace Akka.Mailbox.Bug
         public override string ToString() =>
             new { MailboxCreated, PriorityGenerated, MessagesReceived }.ToString();
 
-        public static readonly Assertions Instance = new Assertions();
+        public void Reset()
+        {
+            MailboxCreated = PriorityGenerated = MessagesReceived = false;
+        }
+
+        public static readonly Assertions Instance = new Assertions();        
     }
 }
